@@ -13,45 +13,53 @@ values."
    dotspacemacs-distribution 'spacemacs
    ;; List of additional paths where to look for configuration layers.
    ;; Paths must have a trailing slash (i.e. `~/.mycontribs/')
-   dotspacemacs-configuration-layer-path '()
+   ;; dotspacemacs-configuration-layer-path '("~/.spacemacs.d/layers/" "~/.emacs.d/private/")
+   dotspacemacs-configuration-layer-path '("~/.spacemacs.d/layers/")
    ;; List of configuration layers to load. If it is the symbol `all' instead
    ;; of a list then all discovered layers will be installed.
-   dotspacemacs-configuration-layers
-   '(
-     ;; ----------------------------------------------------------------
-     ;; Example of useful layers you may want to use right away.
-     ;; Uncomment some layer names and press <SPC f e R> (Vim style) or
-     ;; <M-m f e R> (Emacs style) to install them.
-     ;; ----------------------------------------------------------------
-     auto-completion
-     better-defaults
-     emacs-lisp
-     git
-     markdown
-     org
-     (shell :variables
-            shell-default-height 30
-            shell-default-shell 'eshell
-            shell-default-position 'bottom)
-     spell-checking
-     syntax-checking
-     version-control
+    dotspacemacs-configuration-layers
+    '(
+      ;; ----------------------------------------------------------------
+      ;; Example of useful layers you may want to use right away.
+      ;; Uncomment some layer names and press <SPC f e R> (Vim style) or
+      ;; <M-m f e R> (Emacs style) to install them.
+      ;; ----------------------------------------------------------------
+      auto-completion
+      better-defaults
+      emacs-lisp
+      git
+      markdown
+      org
+      (shell :variables
+             ;; not sure about this yet
+             ;; shell-enable-smart-eshell t ;; holds failed commands on the prompt, ready to be edited
+             shell-default-height 30
+             shell-default-shell 'eshell
+             eshell-rc-script "~/.eshell/profile" ;; back to original default
+             shell-default-position 'bottom)
+      spell-checking
+      syntax-checking
+      version-control
+      clojure
+      (ruby :variables ruby-version-manager 'rbenv)
+      ruby-on-rails
+      java
+      sql
+      yaml
+      javascript
+      html
+      finance
+      colemak-hjkl
+      pianobar)
 
-     clojure
-     ruby
-     java
-     sql
-     yaml
-     javascript
-     html
-     colemak-hjkl
-     )
    ;; List of additional packages that will be installed without being
    ;; wrapped in a layer. If you need some configuration for these
    ;; packages, then consider creating a layer. You can also put the
    ;; configuration in `dotspacemacs/user-config'.
    dotspacemacs-additional-packages '(
-                                      pianobar
+                                      typit ; doesn't work with spacemacs
+                                      gradle-mode
+                                      ox-reveal
                                       )
    ;; A list of packages and/or extensions that will not be install and loaded.
    dotspacemacs-excluded-packages '()
@@ -98,12 +106,12 @@ values."
    ;; List of items to show in the startup buffer. If nil it is disabled.
    ;; Possible values are: `recents' `bookmarks' `projects'.
    ;; (default '(recents projects))
-   dotspacemacs-startup-lists '(recents projects)
+   dotspacemacs-startup-lists '(recents projects bookmarks)
    ;; Number of recent files to show in the startup buffer. Ignored if
    ;; `dotspacemacs-startup-lists' doesn't include `recents'. (default 5)
    dotspacemacs-startup-recent-list-size 5
    ;; Default major mode of the scratch buffer (default `text-mode')
-   dotspacemacs-scratch-mode 'text-mode
+   dotspacemacs-scratch-mode 'emacs-lisp-mode
    ;; List of themes, the first of the list is loaded when spacemacs starts.
    ;; Press <SPC> T n to cycle to the next theme in the list (works great
    ;; with 2 themes variants, one dark and one light)
@@ -118,8 +126,8 @@ values."
    dotspacemacs-colorize-cursor-according-to-state t
    ;; Default font. `powerline-scale' allows to quickly tweak the mode-line
    ;; size to make separators look not too crappy.
-   dotspacemacs-default-font '("Source Code Pro"
-                               :size 13
+   dotspacemacs-default-font '("Inconsolata" ;;"Source Code Pro"
+                               :size 14
                                :weight normal
                                :width normal
                                :powerline-scale 1.1)
@@ -215,7 +223,7 @@ values."
    ;; If non nil smooth scrolling (native-scrolling) is enabled. Smooth
    ;; scrolling overrides the default behavior of Emacs which recenters the
    ;; point when it reaches the top or bottom of the screen. (default t)
-   dotspacemacs-smooth-scrolling t
+   ;; dotspacemacs-smooth-scrolling t
    ;; If non nil line numbers are turned on in all `prog-mode' and `text-mode'
    ;; derivatives. If set to `relative', also turns on relative line numbers.
    ;; (default nil)
@@ -248,37 +256,18 @@ values."
    git-magit-status-fullscreen t
    ))
 
-(defun pianobar-peek ()
-  (interactive)
-   (popwin:popup-buffer "*pianobar*"))
-
 (defun dotspacemacs/user-init ()
   "Initialization function for user code.
 It is called immediately after `dotspacemacs/init'.  You are free to put almost
 any user code here.  The exception is org related code, which should be placed
 in `dotspacemacs/user-config'."
-  (use-package password-store
-    :ensure t
-    )
-  ;; (apply-partially 'popwin:popup-buffer "*pianobar*")
-  ;; (defun pianobar-peek ()
-  ;;   (popwin:popup-buffer "*pianobar*"))
+  (setenv "RBENV_ROOT" "/usr/local/var/rbenv")
+  (setenv "ORACLE_HOME" "/Library/Oracle/instantclient/11.2.0.3.0")
+  (setenv "OCI_DIR" (getenv "ORACLE_HOME"))
+  (setq eshell-hist-ignoredups t)
+  (add-hook 'eshell-directory-change-hook 'rbenv-use-corresponding)
+  ;; two-factor auth
 
-  (use-package pianobar
-    :demand t
-    :defines (pianobar-mode-map)
-    :bind-keymap ("<f7>" . pianobar-mode-map)
-    :bind (:map pianobar-mode-map
-                ("<f7>" . pianobar)
-                ;; SPC w p p for unpeek
-                ("p" . pianobar-peek)
-                ("n" . pianobar-next-song)
-                ("SPC" . pianobar-play-or-pause))
-    :config
-    (setq
-     pianobar-run-in-background t
-     pianobar-username (password-store-get "pandora.com/username")
-     pianobar-password (password-store-get "pandora.com/password")))
   )
 
 
@@ -286,7 +275,60 @@ in `dotspacemacs/user-config'."
   "Configuration function for user code.
 This function is called at the very end of Spacemacs initialization after
 layers configuration. You are free to put any user code."
-  )
+  (require 'ox-reveal)
+
+  (eval-after-load 'evil-magit
+    '(progn
+      (evil-magit-define-key 'normal 'magit-mode-map "h" 'evil-previous-visual-line)
+
+      (evil-magit-define-key 'normal 'magit-mode-map "k" 'evil-next-visual-line)))
+
+  ;; on all hosts, sudo method uses this proxy
+  (add-to-list 'tramp-default-proxies-alist
+               '(nil "\\`root\\'" "/ssh:%h:"))
+
+  (setq password-cache nil)
+
+  (setq tramp-password-prompt-regexp
+        (concat "^.*" (regexp-opt
+                       '("Passphrase" "passphrase"
+                         "Password" "password"
+                         "Passcode" "passcode"
+                         ) t)
+                ".*:\0? *"))
+
+  (setq tramp-ssh-controlmaster-options " -o ControlPath=%t.%%r@%%h:%%p -o ControlMaster=auto -o ControlPersist=yes " )
+
+  (setq tramp-default-method "ssh")
+
+  (setq explicit-shell-file-name "/bin/bash") ;; for tramp remote
+
+  (setq rbenv-executable "/usr/local/bin/rbenv")
+
+  (add-hook 'eshell-mode '(progn
+                            (setq company-backends-eshell-mode '(company-files)) ))
+
+  (spacemacs|use-package-add-hook eshell-mode
+    :post-init
+    (progn
+      (setq company-backends-eshell-mode '(company-files))))
+
+  (setq org-export-babel-evaluate nil)
+
+  (add-to-list 'auto-mode-alist '("\\.rabl$" . ruby-mode))
+
+  (setq avy-all-windows nil) ;; can't go into customize
+
+
+  (require 'gradle-mode)
+
+  (add-hook 'java-mode-hook '(lambda() (gradle-mode 1)))
+
+  (require 'eclimd)
+
+  (setq pianobar-station "9")
+  (add-hook 'text-mode-hook 'auto-fill-mode))
+
 
 ;; Do not write anything past this comment. This is where Emacs will
 ;; auto-generate custom variable definitions.
@@ -295,7 +337,38 @@ layers configuration. You are free to put any user code."
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(paradox-github-token t))
+ '(auto-save-timeout 0)
+ '(avy-all-windows nil)
+ '(eclim-executable
+   "/Users/cthompson/Applications/Eclipse.app/Contents/Eclipse/eclim")
+ '(eclimd-default-workspace "~/projects")
+ '(flycheck-javascript-eslint-executable "/usr/local/bin/eslint")
+ '(org-babel-load-languages
+   (quote
+    ((emacs-lisp . t)
+     (shell . t)
+     (ruby . t)
+     (clojure . t)
+     (ditaa . t)
+     (ledger . t)
+     (sql . t)
+     (awk . t)
+     (dot . t))))
+ '(org-capture-templates
+   (quote
+    (("n" "Notes" entry
+      (file+headline "~/projects/notes/index.org" "Captured")
+      ""))))
+ '(paradox-github-token t)
+ '(safe-local-variable-values
+   (quote
+    ((org-reveal-root . "../bower_components/reveal.js/")
+     (org-reveal-root . "bower_components/reveal.js/")
+     (org-reveal-root . "file:///Users/cthompson/projects/github/presentations/dc3/bower_components/reveal.js/")
+     (ruby-compilation-executable . "bundle exec ruby "))))
+ '(send-mail-function (quote smtpmail-send-it))
+ '(smtpmail-smtp-server "mail2.govdelivery.com")
+ '(smtpmail-smtp-service 25))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
