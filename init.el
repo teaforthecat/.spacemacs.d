@@ -24,7 +24,10 @@ values."
       ;; Uncomment some layer names and press <SPC f e R> (Vim style) or
       ;; <M-m f e R> (Emacs style) to install them.
       ;; ----------------------------------------------------------------
-      auto-completion
+      (auto-completion :variables
+                       auto-completion-return-key-behavior nil
+                       auto-completion-tab-key-behavior 'complete
+                       auto-completion-enable-snippets-in-popup t)
       better-defaults
       emacs-lisp
       git
@@ -50,7 +53,8 @@ values."
       html
       finance
       colemak-hjkl
-      pianobar)
+      pianobar
+      where-am-i)
 
    ;; List of additional packages that will be installed without being
    ;; wrapped in a layer. If you need some configuration for these
@@ -327,7 +331,12 @@ layers configuration. You are free to put any user code."
   (require 'eclimd)
 
   (setq pianobar-station "9")
-  (add-hook 'text-mode-hook 'auto-fill-mode))
+  (add-hook 'text-mode-hook 'auto-fill-mode)
+
+  (use-package dired
+    :config
+    (bind-key "I" 'dired-kill-subdir dired-mode-map))
+  )
 
 
 ;; Do not write anything past this comment. This is where Emacs will
