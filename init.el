@@ -46,12 +46,15 @@ values."
       clojure
       (ruby :variables ruby-version-manager 'rbenv)
       ruby-on-rails
+      restclient
       java
       sql
       yaml
       javascript
       html
       finance
+      puppet
+      ;; local
       colemak-hjkl
       pianobar
       where-am-i)
@@ -64,6 +67,11 @@ values."
                                       typit ; doesn't work with spacemacs
                                       gradle-mode
                                       ox-reveal
+                                      ob-restclient
+                                      ag
+                                      wgrep-ag
+                                      ruby-hash-syntax
+                                      vagrant
                                       )
    ;; A list of packages and/or extensions that will not be install and loaded.
    dotspacemacs-excluded-packages '()
@@ -280,14 +288,15 @@ in `dotspacemacs/user-config'."
 This function is called at the very end of Spacemacs initialization after
 layers configuration. You are free to put any user code."
   (require 'ox-reveal)
-
+  (require 'wgrep-ag)
   (eval-after-load 'evil-magit
     '(progn
       (evil-magit-define-key 'normal 'magit-mode-map "h" 'evil-previous-visual-line)
 
       (evil-magit-define-key 'normal 'magit-mode-map "k" 'evil-next-visual-line)))
 
-  ;; on all hosts, sudo method uses this proxy
+
+  ;; ;; on all hosts, sudo method uses this proxy
   (add-to-list 'tramp-default-proxies-alist
                '(nil "\\`root\\'" "/ssh:%h:"))
 
@@ -307,6 +316,8 @@ layers configuration. You are free to put any user code."
 
   (setq explicit-shell-file-name "/bin/bash") ;; for tramp remote
 
+  (setenv "DYLD_LIBRARY_PATH" (getenv "ORACLE_HOME"))
+
   (setq rbenv-executable "/usr/local/bin/rbenv")
 
   (add-hook 'eshell-mode '(progn
@@ -323,8 +334,8 @@ layers configuration. You are free to put any user code."
 
   (setq avy-all-windows nil) ;; can't go into customize
 
-
   (require 'gradle-mode)
+  (setq epa-file-encrypt-to "teaforthecat@gmail.com")
 
   (add-hook 'java-mode-hook '(lambda() (gradle-mode 1)))
 
@@ -336,6 +347,7 @@ layers configuration. You are free to put any user code."
   (use-package dired
     :config
     (bind-key "I" 'dired-kill-subdir dired-mode-map))
+  (setq cider-cljs-lein-repl "(do (use 'figwheel-sidecar.repl-api) (start-figwheel!) (cljs-repl))")
   )
 
 
@@ -351,6 +363,7 @@ layers configuration. You are free to put any user code."
  '(eclim-executable
    "/Users/cthompson/Applications/Eclipse.app/Contents/Eclipse/eclim")
  '(eclimd-default-workspace "~/projects")
+ '(epa-file-cache-passphrase-for-symmetric-encryption t)
  '(flycheck-javascript-eslint-executable "/usr/local/bin/eslint")
  '(org-babel-load-languages
    (quote
