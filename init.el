@@ -138,7 +138,8 @@ values."
    dotspacemacs-colorize-cursor-according-to-state t
    ;; Default font. `powerline-scale' allows to quickly tweak the mode-line
    ;; size to make separators look not too crappy.
-   dotspacemacs-default-font '("Inconsolata" ;;"Source Code Pro"
+   dotspacemacs-default-font '("Inconsolata"
+                               ;; "Source Code Pro"
                                :size 14
                                :weight normal
                                :width normal
@@ -274,10 +275,11 @@ It is called immediately after `dotspacemacs/init'.  You are free to put almost
 any user code here.  The exception is org related code, which should be placed
 in `dotspacemacs/user-config'."
   (setenv "RBENV_ROOT" "/usr/local/var/rbenv")
-  (setenv "ORACLE_HOME" "/Library/Oracle/instantclient/11.2.0.3.0")
+  (global-rbenv-mode)
+  (add-hook 'eshell-directory-change-hook 'rbenv-use-corresponding)
+  (setenv "ORACLE_HOME" "/Library/Oracle/instantclient/11.2.0.4.0")
   (setenv "OCI_DIR" (getenv "ORACLE_HOME"))
   (setq eshell-hist-ignoredups t)
-  (add-hook 'eshell-directory-change-hook 'rbenv-use-corresponding)
   ;; two-factor auth
 
   )
@@ -346,8 +348,52 @@ layers configuration. You are free to put any user code."
 
   (use-package dired
     :config
-    (bind-key "I" 'dired-kill-subdir dired-mode-map))
+    (bind-key "C-k" 'dired-kill-subdir dired-mode-map))
+
+  (spacemacs/set-leader-keys
+    "wpb" 'popwin:popup-buffer
+    "wps" 'popwin:stick-popup-window)
+
+
   (setq cider-cljs-lein-repl "(do (use 'figwheel-sidecar.repl-api) (start-figwheel!) (cljs-repl))")
+
+
+  ;; fixme (eval-after-load 'ruby-test-mode)
+  (defun ruby-test-run-command (command)
+    ;; added this let for default-directory
+    (let ((default-directory (or (ruby-test-rails-root filename)
+                                 (ruby-test-ruby-root filename)
+                                 default-directory)))
+      (compilation-start command t)))
+
+  (defun ruby-test-testcase-name (name method)
+    "Returns the sanitized name of the test"
+    (cond
+     ;; assume methods created with it are from minitest
+     ;; so no need to sanitize them
+     ((string= method "it")
+      name)
+     ;; added this:
+     ((string= method "should")
+      name)
+     ((string= name "setup")
+      nil)
+     ((string-match "^[\"']\\(.*\\)[\"']$" name)
+      (replace-regexp-in-string
+       "\\?" "\\\\\\\\?"
+       (replace-regexp-in-string
+        "'_?\\|(_?\\|)_?" ".*"
+        (replace-regexp-in-string " +" "_" (match-string 1 name)))))
+     ((string= method "def")
+      name)))
+
+  (defadvice evil-join-whitespace (after fixup-whitespace activate)
+    (fixup-whitespace))
+
+  (defadvice shell-pop-eshell (after cd-to-root activate)
+    (ignore-errors ; in case outside of project
+      (eshell/cd (projectile-project-root))))
+
   )
 
 
@@ -360,6 +406,7 @@ layers configuration. You are free to put any user code."
  ;; If there is more than one, they won't work right.
  '(auto-save-timeout 0)
  '(avy-all-windows nil)
+ '(avy-word-punc-regexp "nil" nil nil "skip the : when jumping to symbols")
  '(eclim-executable
    "/Users/cthompson/Applications/Eclipse.app/Contents/Eclipse/eclim")
  '(eclimd-default-workspace "~/projects")
@@ -379,8 +426,8 @@ layers configuration. You are free to put any user code."
  '(org-capture-templates
    (quote
     (("n" "Notes" entry
-      (file+headline "~/projects/notes/index.org" "Captured")
-      ""))))
+      (file+headline "/keybase/private/teaforthecat/notes/index.org" "Captured")
+      "" :clock-in t :kill-buffer t))))
  '(paradox-github-token t)
  '(safe-local-variable-values
    (quote
