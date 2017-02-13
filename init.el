@@ -56,7 +56,7 @@ values."
       puppet
       ;; local
       colemak-hjkl
-      pianobar
+      ;; pianobar ;; I hit F7 to much
       where-am-i)
 
    ;; List of additional packages that will be installed without being
@@ -354,6 +354,7 @@ layers configuration. You are free to put any user code."
     "wpb" 'popwin:popup-buffer
     "wps" 'popwin:stick-popup-window)
 
+  (global-set-key (kbd "<C-escape>") 'helm-mini) ;; switch buffer
 
   (setq cider-cljs-lein-repl "(do (use 'figwheel-sidecar.repl-api) (start-figwheel!) (cljs-repl))")
 
@@ -389,6 +390,9 @@ layers configuration. You are free to put any user code."
 
   (defadvice evil-join-whitespace (after fixup-whitespace activate)
     (fixup-whitespace))
+  (defadvice evil-lisp-state-sp-kill-sexp (after fixup-whitespace activate)
+    (just-one-space)
+    (indent-according-to-mode))
 
   (defadvice shell-pop-eshell (after cd-to-root activate)
     (ignore-errors ; in case outside of project
