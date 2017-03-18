@@ -46,7 +46,8 @@
                                tramp-local-end-of-line)))
 
 (defun tramp-enter-synchronous-response (proc vec)
-  ;; this happens if the "Passcode: " is not valid
+  ;; if the "Passcode: " is not valid, Dell Defender will ask again for the
+  ;; passcode using the prompt: Enter Synchronous Response:
   (if (save-excursion
         (with-current-buffer (process-buffer proc)
           ;; Dell Defender inserts control character "^M" at end of line so the
