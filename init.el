@@ -19,6 +19,8 @@ values."
    ;; of a list then all discovered layers will be installed.
     dotspacemacs-configuration-layers
     '(
+      nginx
+      python
       ;; ----------------------------------------------------------------
       ;; Example of useful layers you may want to use right away.
       ;; Uncomment some layer names and press <SPC f e R> (Vim style) or
@@ -57,14 +59,16 @@ values."
       ;; local
       colemak-hjkl
       ;; pianobar ;; I hit F7 to much
-      where-am-i)
+      remote-hosts
+      where-am-i
+      )
 
    ;; List of additional packages that will be installed without being
    ;; wrapped in a layer. If you need some configuration for these
    ;; packages, then consider creating a layer. You can also put the
    ;; configuration in `dotspacemacs/user-config'.
    dotspacemacs-additional-packages '(
-                                      typit ; doesn't work with spacemacs
+                                      ;typit ; doesn't work with spacemacs
                                       gradle-mode
                                       ox-reveal
                                       ob-restclient
@@ -74,7 +78,10 @@ values."
                                       vagrant
                                       )
    ;; A list of packages and/or extensions that will not be install and loaded.
-   dotspacemacs-excluded-packages '()
+   dotspacemacs-excluded-packages '(tern
+                                    ;;maybe
+                                    vi-tilde-fringe
+                                    )
    ;; If non-nil spacemacs will delete any orphan packages, i.e. packages that
    ;; are declared in a layer which is not a member of
    ;; the list `dotspacemacs-configuration-layers'. (default t)
@@ -298,26 +305,6 @@ layers configuration. You are free to put any user code."
       (evil-magit-define-key 'normal 'magit-mode-map "k" 'evil-next-visual-line)))
 
 
-  ;; ;; on all hosts, sudo method uses this proxy
-  (add-to-list 'tramp-default-proxies-alist
-               '(nil "\\`root\\'" "/ssh:%h:"))
-
-  (setq password-cache nil)
-
-  (setq tramp-password-prompt-regexp
-        (concat "^.*" (regexp-opt
-                       '("Passphrase" "passphrase"
-                         "Password" "password"
-                         "Passcode" "passcode"
-                         ) t)
-                ".*:\0? *"))
-
-  (setq tramp-ssh-controlmaster-options " -o ControlPath=%t.%%r@%%h:%%p -o ControlMaster=auto -o ControlPersist=yes " )
-
-  (setq tramp-default-method "ssh")
-
-  (setq explicit-shell-file-name "/bin/bash") ;; for tramp remote
-
   (setenv "DYLD_LIBRARY_PATH" (getenv "ORACLE_HOME"))
 
   (setq rbenv-executable "/usr/local/bin/rbenv")
@@ -348,7 +335,9 @@ layers configuration. You are free to put any user code."
 
   (use-package dired
     :config
-    (bind-key "C-k" 'dired-kill-subdir dired-mode-map))
+    (bind-key "C-k" 'dired-kill-subdir dired-mode-map)
+    (bind-key "I" 'dired-kill-subdir dired-mode-map)
+    )
 
   (spacemacs/set-leader-keys
     "wpb" 'popwin:popup-buffer
@@ -390,13 +379,18 @@ layers configuration. You are free to put any user code."
 
   (defadvice evil-join-whitespace (after fixup-whitespace activate)
     (fixup-whitespace))
+
   (defadvice evil-lisp-state-sp-kill-sexp (after fixup-whitespace activate)
     (just-one-space)
     (indent-according-to-mode))
 
-  (defadvice shell-pop-eshell (after cd-to-root activate)
+  (defadvice spacemacs/shell-pop-eshell (after cd-to-root activate)
     (ignore-errors ; in case outside of project
       (eshell/cd (projectile-project-root))))
+
+  (spacemacs/set-leader-keys
+    ;; always async
+    "!" 'async-shell-command)
 
   )
 
@@ -409,8 +403,8 @@ layers configuration. You are free to put any user code."
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(auto-save-timeout 0)
- '(avy-all-windows nil)
- '(avy-word-punc-regexp "nil" nil nil "skip the : when jumping to symbols")
+ '(avy-all-windows nil t)
+ '(avy-word-punc-regexp nil nil nil "skip the : when jumping to symbols")
  '(eclim-executable
    "/Users/cthompson/Applications/Eclipse.app/Contents/Eclipse/eclim")
  '(eclimd-default-workspace "~/projects")
@@ -441,7 +435,8 @@ layers configuration. You are free to put any user code."
      (ruby-compilation-executable . "bundle exec ruby "))))
  '(send-mail-function (quote smtpmail-send-it))
  '(smtpmail-smtp-server "mail2.govdelivery.com")
- '(smtpmail-smtp-service 25))
+ '(smtpmail-smtp-service 25)
+ )
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

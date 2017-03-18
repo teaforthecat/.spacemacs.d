@@ -1,8 +1,8 @@
-;;; packages.el --- where-am-i layer packages file for Spacemacs.
+;;; funcs.el --- where-am-i layer functions file for Spacemacs.
 ;;
 ;; Copyright (c) 2012-2016 Sylvain Benner & Contributors
 ;;
-;; Author: Chris Thompson <cthompson@teaforthecat.local>
+;; Author: Chris Thompson <teaforthecat@gmail.com>
 ;; URL: https://github.com/syl20bnr/spacemacs
 ;;
 ;; This file is not part of GNU Emacs.
