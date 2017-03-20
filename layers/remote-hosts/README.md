@@ -8,7 +8,14 @@ value was sent as the passcode, and Dell Defender responded with:
     <- cursor here
 
 The cursor is on a blank line so adding "Enter Synchronous Response" to
-`tramp-password-prompt-regexp` doesn't have the desired effect. The way that
-`tramp-process-actions` works is that the regexp has to match the whole line. This
-also means that if the line has a space at the end, the regexp has to
-accommodate that. That is why `tramp-passcode-prompt` has a space at the end.
+`tramp-password-prompt-regexp` doesn't have the desired effect.
+
+The solution put forword in this layer is to use `tramp-process-actions` to look
+for the prompts from Dell Defender. The regexps in `tramp-process-actions`
+appear to need to match to whole line. This means that if the line has a space
+at the end, the regexp has to accommodate that. That is why
+`tramp-passcode-prompt` has a space at the end.
+
+There are also some helper functions such as `remote-shell`.
+
+TODO: Helm autocomplete from an inventory file
