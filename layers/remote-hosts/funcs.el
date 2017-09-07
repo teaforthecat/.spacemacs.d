@@ -25,7 +25,7 @@
 
 (defun remote-shell ( &optional host)
   (interactive)
-  (let* ((remote-hostname (or host (chomp (shell-command-to-string "hostname"))))
+  (let* ((remote-hostname (or host (s-chomp (shell-command-to-string "hostname"))))
          (remote-buffer-name (format "*%s*" (car (split-string remote-hostname "\\." ))))
          (default-directory (format "/ssh:%s:" remote-hostname)))
     (eshell)
@@ -54,9 +54,10 @@
           ;; cursor is on a blank line after the prompt
           (forward-line -1)
           (looking-at "Enter Synchronous Response:")))
-      (let ((passcode (read-input "Enter Synchronous Response: ")))
+      (let ((passcode (read-string "Enter Synchronous Response: ")))
         (enter-passcode proc passcode))))
 
 (defun tramp-two-factor-send-passcode (proc vec)
-  (let ((passcode (read-input "Passcode: ")))
+  (let* ((passcode (read-string "Passcode: ")))
     (enter-passcode proc passcode)))
+
