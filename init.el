@@ -351,13 +351,7 @@ executes.
 before packages are loaded. If you are unsure, you should try in setting them in
 `dotspacemacs/user-config' first."
 
-  (setenv "RBENV_ROOT" "/usr/local/var/rbenv")
-  ;; (global-rbenv-mode) ;; ??
-  (add-hook 'eshell-directory-change-hook 'rbenv-use-corresponding)
-  (setenv "ORACLE_HOME" "/Library/Oracle/instantclient/11.2.0.4.0")
-  (setenv "OCI_DIR" (getenv "ORACLE_HOME"))
   (setq eshell-hist-ignoredups t)
-  ;; two-factor auth
 
   )
 
@@ -369,8 +363,10 @@ This is the place where most of your configurations should be done. Unless it is
 explicitly specified that a variable should be set before a package is loaded,
 you should place your code here."
 
+  (add-hook 'text-mode-hook 'auto-fill-mode)
 
   (require 'wgrep-ag)
+
   (eval-after-load 'evil-magit
     '(progn
       (evil-magit-define-key 'normal 'magit-mode-map "h" 'evil-previous-visual-line)
@@ -378,36 +374,17 @@ you should place your code here."
       (evil-magit-define-key 'normal 'magit-mode-map "k" 'evil-next-visual-line)))
 
 
-  (setenv "DYLD_LIBRARY_PATH" (getenv "ORACLE_HOME"))
-
-  (setq rbenv-executable "/usr/local/bin/rbenv")
-
-  (add-hook 'eshell-mode '(progn
-                            (setq company-backends-eshell-mode '(company-files)) ))
-
-  (spacemacs|use-package-add-hook eshell-mode
-    :post-init
-    (progn
-      (setq company-backends-eshell-mode '(company-files))))
-
-
   ;; this should be file or directory local
   ;; (setq org-export-babel-evaluate nil)
   (use-package ob-sql)
 
-  (add-to-list 'auto-mode-alist '("\\.rabl$" . ruby-mode))
-
   (setq avy-all-windows nil) ;; can't go into customize
 
-  (require 'gradle-mode)
   (setq epa-file-encrypt-to "teaforthecat@gmail.com")
 
-  (add-hook 'java-mode-hook '(lambda() (gradle-mode 1)))
-
+  (require 'gradle-mode)
   (require 'eclimd)
-
-  (setq pianobar-station "9")
-  (add-hook 'text-mode-hook 'auto-fill-mode)
+  (add-hook 'java-mode-hook '(lambda() (gradle-mode 1)))
 
   (use-package dired
     :config
@@ -416,27 +393,7 @@ you should place your code here."
     ;; (bind-key "I" 'dired-kill-subdir dired-mode-map)
     )
 
-  (with-eval-after-load 'org-agenda
-    (require 'org-projectile)
-    )
-
-  (use-package org-journal
-    :config
-    )
-
-  (use-package org-projectile
-    ;; :bind (("C-c n p" . org-projectile:project-todo-completing-read)
-    ;;        ("C-c c" . org-capture))
-    :config
-    ;; only TODOS that are in a project are honored
-    (setq org-agenda-files (org-projectile:todo-files))
-
-    (progn
-      (setq org-projectile:projects-file
-            "/your/path/to/an/org/file/for/storing/projects.org")
-      (setq org-agenda-files (append org-agenda-files (org-projectile:todo-files)))
-      (add-to-list 'org-capture-templates (org-projectile:project-todo-entry "p")))
-    :ensure t)
+  (use-package org-journal)
 
   (defun ct/popup-compilation ()
     (interactive)
@@ -447,6 +404,9 @@ you should place your code here."
     "wps" 'popwin:stick-popup-window
     "wpc" 'ct/popup-compilation
     "DEL" 'avy-goto-subword-1
+    "p`"  'ct/project-root-shell
+    ;; always async
+    "!" 'async-shell-command
     )
 
   (defun ct/project-root-shell ()
@@ -469,42 +429,12 @@ you should place your code here."
       (erase-buffer)
       (eshell-send-input)))
 
-  (spacemacs/set-leader-keys
-    "p`" 'ct/project-root-shell)
+  ;; maybe put something else here - spc b b is not that bad
+  ;; (global-set-key (kbd "<C-escape>") 'helm-mini) ;; switch buffer
 
-  (global-set-key (kbd "<C-escape>") 'helm-mini) ;; switch buffer
+  ;; not sure this is neeeded anymore
+  ;; (setq cider-cljs-lein-repl "(do (use 'figwheel-sidecar.repl-api) (start-figwheel!) (cljs-repl))")
 
-  (setq cider-cljs-lein-repl "(do (use 'figwheel-sidecar.repl-api) (start-figwheel!) (cljs-repl))")
-
-
-  ;; fixme (eval-after-load 'ruby-test-mode)
-  (defun ruby-test-run-command (command)
-    ;; added this let for default-directory
-    (let ((default-directory (or (ruby-test-rails-root filename)
-                                 (ruby-test-ruby-root filename)
-                                 default-directory)))
-      (compilation-start command t)))
-
-  (defun ruby-test-testcase-name (name method)
-    "Returns the sanitized name of the test"
-    (cond
-     ;; assume methods created with it are from minitest
-     ;; so no need to sanitize them
-     ((string= method "it")
-      name)
-     ;; added this:
-     ((string= method "should")
-      name)
-     ((string= name "setup")
-      nil)
-     ((string-match "^[\"']\\(.*\\)[\"']$" name)
-      (replace-regexp-in-string
-       "\\?" "\\\\\\\\?"
-       (replace-regexp-in-string
-        "'_?\\|(_?\\|)_?" ".*"
-        (replace-regexp-in-string " +" "_" (match-string 1 name)))))
-     ((string= method "def")
-      name)))
 
   (defadvice evil-join-whitespace (after fixup-whitespace activate)
     (fixup-whitespace))
@@ -513,16 +443,15 @@ you should place your code here."
     (just-one-space)
     (indent-according-to-mode))
 
+  (defadvice just-one-space (after no-tail-space activate)
+    (if (looking-at (regexp-quote ")"))
+        ;; the space
+        (call-interactively 'delete-backward-char)))
+
   (defadvice spacemacs/shell-pop-eshell (after cd-to-root activate)
     (ignore-errors ; in case outside of project
       (eshell/cd (projectile-project-root))))
 
-  (spacemacs/set-leader-keys
-    ;; always async
-    "!" 'async-shell-command
-    ;; this doesn't get evaluated at the right time to work
-    ;; "SPC" 'avy-goto-word-or-subword-1
-    )
 
   (setq avy-background t)
 
@@ -538,7 +467,7 @@ you should place your code here."
  '(org-crypt-key "CB13A538")
  '(package-selected-packages
    (quote
-    (csv-mode ob-sql-mode memento org-journal org-ehtml toml-mode racer flycheck-rust cargo rust-mode deft vi-tilde-fringe yapfify yaml-mode xterm-color ws-butler winum which-key wgrep-ag web-mode web-beautify volatile-highlights vagrant uuidgen use-package unfill typit toc-org tagedit sql-indent spaceline smeargle slim-mode shell-pop scss-mode sass-mode rvm ruby-tools ruby-test-mode ruby-hash-syntax rubocop rspec-mode robe restclient-helm restart-emacs rbenv rainbow-delimiters pyvenv pytest pyenv-mode py-isort puppet-mode pug-mode projectile-rails popwin pip-requirements persp-mode paradox orgit org-projectile org-present org-pomodoro org-plus-contrib org-download org-bullets open-junk-file ob-restclient ob-http nginx-mode neotree mwim multi-term move-text mmm-mode minitest markdown-toc magit-gitflow macrostep lorem-ipsum livid-mode live-py-mode linum-relative link-hint less-css-mode ledger-mode js2-refactor js-doc jinja2-mode info+ indent-guide hy-mode hungry-delete htmlize hl-todo highlight-parentheses highlight-numbers highlight-indentation hide-comnt help-fns+ helm-themes helm-swoop helm-pydoc helm-projectile helm-mode-manager helm-make helm-gitignore helm-flx helm-descbinds helm-css-scss helm-company helm-c-yasnippet helm-ag gradle-mode google-translate golden-ratio gnuplot gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe git-gutter-fringe+ gh-md fuzzy flyspell-correct-helm flycheck-pos-tip flycheck-ledger flx-ido floobits fill-column-indicator feature-mode fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-magit evil-lisp-state evil-indent-plus evil-iedit-state evil-exchange evil-escape evil-ediff evil-args evil-anzu eshell-z eshell-prompt-extras esh-help emmet-mode elisp-slime-nav dumb-jump dockerfile-mode docker diff-hl define-word cython-mode csharp-mode company-web company-tern company-statistics company-restclient company-emacs-eclim company-ansible company-anaconda column-enforce-mode coffee-mode clojure-snippets clj-refactor clean-aindent-mode cider-eval-sexp-fu chruby bundler auto-yasnippet auto-highlight-symbol auto-dictionary auto-compile ansible-doc ansible aggressive-indent ag adaptive-wrap ace-window ace-link ace-jump-helm-line ac-ispell)))
+    (wgrep mmt powerline rake pcre2el ox-reveal org-category-capture alert log4e gntp org-mime markdown-mode skewer-mode simple-httpd js2-mode parent-mode projectile request haml-mode gitignore-mode fringe-helper git-gutter+ git-gutter flyspell-correct pos-tip flycheck flx magit git-commit ghub let-alist with-editor smartparens iedit anzu evil goto-chg undo-tree json-mode tablist magit-popup docker-tramp json-snatcher json-reformat diminish web-completion-data dash-functional tern restclient know-your-http-well eclim company hydra inflections edn multiple-cursors paredit peg eval-sexp-fu highlight cider seq spinner queue pkg-info clojure-mode epl inf-ruby bind-map bind-key yasnippet packed anaconda-mode pythonic f s dash helm avy helm-core async auto-complete popup csv-mode ob-sql-mode memento org-journal org-ehtml toml-mode racer flycheck-rust cargo rust-mode deft vi-tilde-fringe yapfify yaml-mode xterm-color ws-butler winum which-key wgrep-ag web-mode web-beautify volatile-highlights vagrant uuidgen use-package unfill typit toc-org tagedit sql-indent spaceline smeargle slim-mode shell-pop scss-mode sass-mode rvm ruby-tools ruby-test-mode ruby-hash-syntax rubocop rspec-mode robe restclient-helm restart-emacs rbenv rainbow-delimiters pyvenv pytest pyenv-mode py-isort puppet-mode pug-mode projectile-rails popwin pip-requirements persp-mode paradox orgit org-projectile org-present org-pomodoro org-plus-contrib org-download org-bullets open-junk-file ob-restclient ob-http nginx-mode neotree mwim multi-term move-text mmm-mode minitest markdown-toc magit-gitflow macrostep lorem-ipsum livid-mode live-py-mode linum-relative link-hint less-css-mode ledger-mode js2-refactor js-doc jinja2-mode info+ indent-guide hy-mode hungry-delete htmlize hl-todo highlight-parentheses highlight-numbers highlight-indentation hide-comnt help-fns+ helm-themes helm-swoop helm-pydoc helm-projectile helm-mode-manager helm-make helm-gitignore helm-flx helm-descbinds helm-css-scss helm-company helm-c-yasnippet helm-ag gradle-mode google-translate golden-ratio gnuplot gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe git-gutter-fringe+ gh-md fuzzy flyspell-correct-helm flycheck-pos-tip flycheck-ledger flx-ido floobits fill-column-indicator feature-mode fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-magit evil-lisp-state evil-indent-plus evil-iedit-state evil-exchange evil-escape evil-ediff evil-args evil-anzu eshell-z eshell-prompt-extras esh-help emmet-mode elisp-slime-nav dumb-jump dockerfile-mode docker diff-hl define-word cython-mode csharp-mode company-web company-tern company-statistics company-restclient company-emacs-eclim company-ansible company-anaconda column-enforce-mode coffee-mode clojure-snippets clj-refactor clean-aindent-mode cider-eval-sexp-fu chruby bundler auto-yasnippet auto-highlight-symbol auto-dictionary auto-compile ansible-doc ansible aggressive-indent ag adaptive-wrap ace-window ace-link ace-jump-helm-line ac-ispell)))
  '(projectile-ignored-project-function (quote file-remote-p))
  '(safe-local-variable-values
    (quote
