@@ -32,8 +32,8 @@ values."
    ;; of a list then all discovered layers will be installed.
     dotspacemacs-configuration-layers
     '(
+      typescript
       csv
-      ansible
       nginx
       python
       docker
@@ -78,7 +78,7 @@ values."
       puppet
       ;; local
       colemak-hjkl
-      ;; pianobar ;; I hit F7 to much
+      pianobar ;; I hit F7 to much
       remote-hosts
       where-am-i
       )
@@ -91,12 +91,15 @@ values."
                                       typit
                                       ag
                                       csharp-mode ; unity
+                                      dizzee
                                       gradle-mode
                                       ob-restclient
                                       org-journal
                                       wgrep-ag
                                       ruby-hash-syntax
+                                      terraform-mode
                                       vagrant
+                                      dired-collapse
                                       )
    ;; A list of packages that cannot be updated.
    dotspacemacs-frozen-packages '()
@@ -180,7 +183,7 @@ values."
    ;; Default font, or prioritized list of fonts. `powerline-scale' allows to
    ;; quickly tweak the mode-line size to make separators look not too crappy.
    dotspacemacs-default-font '( "Inconsolata" ;;"Source Code Pro"
-                               :size 13
+                               :size 16
                                :weight normal
                                :width normal
                                :powerline-scale 1.1)
@@ -382,9 +385,32 @@ you should place your code here."
 
   (setq epa-file-encrypt-to "teaforthecat@gmail.com")
 
-  (require 'gradle-mode)
-  (require 'eclimd)
-  (add-hook 'java-mode-hook '(lambda() (gradle-mode 1)))
+  ;; ;; ALL FAILS
+  ;; ;; (require 'gradle-mode)
+  ;; ;; (add-hook 'java-mode-hook '(lambda() (gradle-mode 1)))
+  ;; for CORLA
+  (add-hook 'java-mode-hook '(lambda() (setq c-basic-offset 2)))
+  (remove-hook 'java-mode-hook 'eclim-mode)
+
+  ;; ;; Eclim setup
+  ;; ;; brew cask install eclipse #installs to /Applications/Eclipse.app
+  ;; ;; mkdir ~/opt #optional
+  ;; ;; open /Applications/Eclipse.app #set workspace in UI to ~/opt/eclipse-workspace and quit
+  ;; ;; # Not sure how to use curl here actually
+  ;; ;; curl  https://github.com/ervandew/eclim/releases/download/2.7.2/eclim_2.7.2.bin > ~/Downloads/eclim_2.7.2.bin
+  ;; ;; chmod +x ~/Downloads/eclim_2.7.2.bin
+  ;; ;; ~/Downloads/eclim_2.7.2.bin --vimfiles=skip --eclipse=/Applications/Eclipse\ Java.app --plugins jdt
+  ;; ;; ln -s /Applications/Eclipse\ Java.app /Applications/Eclipse_Java.app
+  ;; (setq eclim-eclipse-dirs '("/Applications/Eclipse.app/Contents/Eclipse/")
+  ;;       eclim-executable "/Applications/Eclipse.app/Contents/Eclipse/eclimd"
+  ;;       eclimd-default-workspace "~/opt/eclipse-workspace")
+  ;; (require 'lsp-java)
+  ;; (add-hook 'java-mode-hook #'lsp-java-enable)
+  ;; ;; (setq lsp-java-server-install-dir "/Applications/Eclipse.app/Contents/Eclipse")
+  ;; (setq lsp-java-server-install-dir "/Users/cthompson/Downloads/jdt-language-server-0.21.0-201806152234")
+
+  ;; (setq eclim-executable "/Applications/Eclipse.app/Contents/Eclipse/eclimd")
+  ;; ;; ALL FAILS
 
   (use-package dired
     :config
@@ -392,6 +418,20 @@ you should place your code here."
     ;; (bind-key "C-k" 'dired-kill-subdir dired-mode-map)
     ;; (bind-key "I" 'dired-kill-subdir dired-mode-map)
     )
+
+  (use-package dired-collapse)
+  ;; not sure how to use this
+  ;; (dired-collapse-mode)
+
+  ;; todo use this
+  (use-package dizzee)
+
+  (use-package exec-path-from-shell
+    :config
+    (when (memq window-system '(mac ns x))
+      (exec-path-from-shell-initialize)))
+
+  (require  'ox-md)
 
   (use-package org-journal)
 
@@ -407,6 +447,8 @@ you should place your code here."
     "p`"  'ct/project-root-shell
     ;; always async
     "!" 'async-shell-command
+    "cup" 'copy-unfilled-paragraph
+    "aoP" 'org-pomodoro
     )
 
   (defun ct/project-root-shell ()
@@ -428,6 +470,11 @@ you should place your code here."
     (let ((inhibit-read-only t))
       (erase-buffer)
       (eshell-send-input)))
+
+  (setenv "PGHOST" "127.0.0.1") ;; postgres running in docker
+
+  (setenv "PATH"
+          (concat  (getenv "PATH") ":" "/Library/Tex/texbin"))
 
   ;; maybe put something else here - spc b b is not that bad
   ;; (global-set-key (kbd "<C-escape>") 'helm-mini) ;; switch buffer
@@ -455,7 +502,46 @@ you should place your code here."
 
   (setq avy-background t)
 
-  )
+
+  (use-package
+     ediff
+    :config
+    (progn
+
+      (defun ct/ediff-dirs-hide-same ()
+        ;; marks equal files for hiding as if =h were typed
+        (ediff-meta-mark-equal-files '?h)
+        ;; does the hiding
+        (ediff-hide-marked-sessions nil))
+
+      (setq ediff-after-session-group-setup-hook '(ct/ediff-dirs-hide-same))
+
+      (setq ediff-default-filtering-regexp
+            '(car (or ediff-filtering-regexp-history '("^[^.].*$")) )))))
+
+;; utility function
+(defun copy-unfilled-paragraph ()
+  (interactive)
+  (save-excursion
+    (unfill-paragraph)
+    (mark-paragraph)
+    (call-interactively 'copy-region-as-kill)
+    (fill-paragraph)))
+
+;; this may solve the "Text is read only" problem that prevents eshell from
+;; being able to close the buffer
+(setq eshell-prompt-regexp "^[^λ]+ λ ")
+
+;; help gets in the way when I'm stumbling around
+(global-unset-key (kbd "C-h h"))
+
+
+(defun shasum ()
+  (interactive)
+  (dired-do-shell-command "shasum -a256" nil (list (file-name-nondirectory
+                                                    (dired-get-file-for-visit))))
+  (with-current-buffer "*Shell Command Output*"
+    (kill-ring-save (point-min) (point-max))))
 
 ;; Do not write anything past this comment. This is where Emacs will
 ;; auto-generate custom variable definitions.
@@ -464,14 +550,22 @@ you should place your code here."
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(ledger-schedule-file "~/Documents/journal/ledger/schedule.ledger")
+ '(linum-format "%4d")
+ '(org-babel-load-languages (quote ((sql . t) (shell . t) (emacs-lisp . t))))
  '(org-crypt-key "CB13A538")
  '(package-selected-packages
    (quote
-    (wgrep mmt powerline rake pcre2el ox-reveal org-category-capture alert log4e gntp org-mime markdown-mode skewer-mode simple-httpd js2-mode parent-mode projectile request haml-mode gitignore-mode fringe-helper git-gutter+ git-gutter flyspell-correct pos-tip flycheck flx magit git-commit ghub let-alist with-editor smartparens iedit anzu evil goto-chg undo-tree json-mode tablist magit-popup docker-tramp json-snatcher json-reformat diminish web-completion-data dash-functional tern restclient know-your-http-well eclim company hydra inflections edn multiple-cursors paredit peg eval-sexp-fu highlight cider seq spinner queue pkg-info clojure-mode epl inf-ruby bind-map bind-key yasnippet packed anaconda-mode pythonic f s dash helm avy helm-core async auto-complete popup csv-mode ob-sql-mode memento org-journal org-ehtml toml-mode racer flycheck-rust cargo rust-mode deft vi-tilde-fringe yapfify yaml-mode xterm-color ws-butler winum which-key wgrep-ag web-mode web-beautify volatile-highlights vagrant uuidgen use-package unfill typit toc-org tagedit sql-indent spaceline smeargle slim-mode shell-pop scss-mode sass-mode rvm ruby-tools ruby-test-mode ruby-hash-syntax rubocop rspec-mode robe restclient-helm restart-emacs rbenv rainbow-delimiters pyvenv pytest pyenv-mode py-isort puppet-mode pug-mode projectile-rails popwin pip-requirements persp-mode paradox orgit org-projectile org-present org-pomodoro org-plus-contrib org-download org-bullets open-junk-file ob-restclient ob-http nginx-mode neotree mwim multi-term move-text mmm-mode minitest markdown-toc magit-gitflow macrostep lorem-ipsum livid-mode live-py-mode linum-relative link-hint less-css-mode ledger-mode js2-refactor js-doc jinja2-mode info+ indent-guide hy-mode hungry-delete htmlize hl-todo highlight-parentheses highlight-numbers highlight-indentation hide-comnt help-fns+ helm-themes helm-swoop helm-pydoc helm-projectile helm-mode-manager helm-make helm-gitignore helm-flx helm-descbinds helm-css-scss helm-company helm-c-yasnippet helm-ag gradle-mode google-translate golden-ratio gnuplot gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe git-gutter-fringe+ gh-md fuzzy flyspell-correct-helm flycheck-pos-tip flycheck-ledger flx-ido floobits fill-column-indicator feature-mode fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-magit evil-lisp-state evil-indent-plus evil-iedit-state evil-exchange evil-escape evil-ediff evil-args evil-anzu eshell-z eshell-prompt-extras esh-help emmet-mode elisp-slime-nav dumb-jump dockerfile-mode docker diff-hl define-word cython-mode csharp-mode company-web company-tern company-statistics company-restclient company-emacs-eclim company-ansible company-anaconda column-enforce-mode coffee-mode clojure-snippets clj-refactor clean-aindent-mode cider-eval-sexp-fu chruby bundler auto-yasnippet auto-highlight-symbol auto-dictionary auto-compile ansible-doc ansible aggressive-indent ag adaptive-wrap ace-window ace-link ace-jump-helm-line ac-ispell)))
+    (pianobar password-store dizzee dired-collapse tabula-rasa terraform-mode tide typescript-mode hledger-mode wgrep mmt powerline rake pcre2el ox-reveal org-category-capture alert log4e gntp org-mime markdown-mode skewer-mode simple-httpd js2-mode parent-mode projectile request haml-mode gitignore-mode fringe-helper git-gutter+ git-gutter flyspell-correct pos-tip flycheck flx magit git-commit ghub let-alist with-editor smartparens iedit anzu evil goto-chg undo-tree json-mode tablist magit-popup docker-tramp json-snatcher json-reformat diminish web-completion-data dash-functional tern restclient know-your-http-well eclim company hydra inflections edn multiple-cursors paredit peg eval-sexp-fu highlight cider seq spinner queue pkg-info clojure-mode epl inf-ruby bind-map bind-key yasnippet packed anaconda-mode pythonic f s dash helm avy helm-core async auto-complete popup csv-mode ob-sql-mode memento org-journal org-ehtml toml-mode racer flycheck-rust cargo rust-mode deft vi-tilde-fringe yapfify yaml-mode xterm-color ws-butler winum which-key wgrep-ag web-mode web-beautify volatile-highlights vagrant uuidgen use-package unfill typit toc-org tagedit sql-indent spaceline smeargle slim-mode shell-pop scss-mode sass-mode rvm ruby-tools ruby-test-mode ruby-hash-syntax rubocop rspec-mode robe restclient-helm restart-emacs rbenv rainbow-delimiters pyvenv pytest pyenv-mode py-isort puppet-mode pug-mode projectile-rails popwin pip-requirements persp-mode paradox orgit org-projectile org-present org-pomodoro org-plus-contrib org-download org-bullets open-junk-file ob-restclient ob-http nginx-mode neotree mwim multi-term move-text mmm-mode minitest markdown-toc magit-gitflow macrostep lorem-ipsum livid-mode live-py-mode linum-relative link-hint less-css-mode ledger-mode js2-refactor js-doc jinja2-mode info+ indent-guide hy-mode hungry-delete htmlize hl-todo highlight-parentheses highlight-numbers highlight-indentation hide-comnt help-fns+ helm-themes helm-swoop helm-pydoc helm-projectile helm-mode-manager helm-make helm-gitignore helm-flx helm-descbinds helm-css-scss helm-company helm-c-yasnippet helm-ag gradle-mode google-translate golden-ratio gnuplot gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe git-gutter-fringe+ gh-md fuzzy flyspell-correct-helm flycheck-pos-tip flycheck-ledger flx-ido floobits fill-column-indicator feature-mode fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-magit evil-lisp-state evil-indent-plus evil-iedit-state evil-exchange evil-escape evil-ediff evil-args evil-anzu eshell-z eshell-prompt-extras esh-help emmet-mode elisp-slime-nav dumb-jump dockerfile-mode docker diff-hl define-word cython-mode csharp-mode company-web company-tern company-statistics company-restclient company-emacs-eclim company-anaconda column-enforce-mode coffee-mode clojure-snippets clj-refactor clean-aindent-mode cider-eval-sexp-fu chruby bundler auto-yasnippet auto-highlight-symbol auto-dictionary auto-compile aggressive-indent ag adaptive-wrap ace-window ace-link ace-jump-helm-line ac-ispell)))
  '(projectile-ignored-project-function (quote file-remote-p))
  '(safe-local-variable-values
    (quote
-    ((whitespace-cleanup)
+    ((cider-ns-refresh-after-fn . "integrant.repl/resume")
+     (cider-ns-refresh-before-fn . "integrant.repl/suspend")
+     (org-reveal-root . "../bower_components/reveal.js/")
+     (cider-refresh-after-fn . "integrant.repl/resume")
+     (cider-refresh-before-fn . "integrant.repl/suspend")
+     (whitespace-cleanup)
      (org-html-postamble)
      (org-reveal-title-slide . "<h1 class=\"title\">%t</h1>"))))
  '(tramp-histfile-override "$HOME/.sh_history"))
@@ -480,4 +574,4 @@ you should place your code here."
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- )
+ '(linum ((t (:background "#212026" :foreground "gridColor")))))
